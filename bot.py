@@ -10,7 +10,7 @@ from aiogram.filters import Command
 from aiohttp import web
 
 # ===============================
-# TOKEN (Renderdan olinadi)
+# TOKEN
 # ===============================
 API_TOKEN = os.getenv("BOT_TOKEN")
 
@@ -20,8 +20,8 @@ if not API_TOKEN:
 # ===============================
 # SOZLAMALAR
 # ===============================
-ADMINS = [7454731921]  # o'zingni ID
-CHANNELS = ["@tolibjonovv_00"]  # kanallar username
+ADMINS = [7454731921]  # o'zingni ID yoz
+CHANNELS = ["@tolibjonovv_00"]  # kanal username
 
 # ===============================
 # BOT
@@ -49,11 +49,14 @@ conn.commit()
 # OBUNA TEKSHIRISH
 # ===============================
 async def check_sub(user_id):
-    for channel in CHANNELS:
-        member = await bot.get_chat_member(channel, user_id)
-        if member.status in ["left", "kicked"]:
-            return False
-    return True
+    try:
+        for channel in CHANNELS:
+            member = await bot.get_chat_member(channel, user_id)
+            if member.status in ["left", "kicked"]:
+                return False
+        return True
+    except:
+        return False
 
 # ===============================
 # BUTTON
@@ -91,7 +94,7 @@ async def check_callback(callback: types.CallbackQuery):
         await callback.answer("❌ Obuna bo'lmagansiz", show_alert=True)
 
 # ===============================
-# ADMIN VIDEO
+# ADMIN VIDEO QO'SHISH
 # ===============================
 @dp.message(F.video)
 async def save_movie(message: types.Message):
@@ -127,10 +130,10 @@ async def send_movie(message: types.Message):
     if result:
         await bot.send_video(message.chat.id, result[0])
     else:
-        await message.answer("❌ Topilmadi")
+        await message.answer("❌ Kino topilmadi")
 
 # ===============================
-# FAKE SERVER (RENDER UCHUN)
+# RENDER UCHUN WEB SERVER
 # ===============================
 PORT = int(os.environ.get("PORT", 10000))
 
@@ -155,5 +158,11 @@ async def main():
     print("Bot ishga tushdi")
     await dp.start_polling(bot)
 
+# ===============================
+# RUN + DEBUG
+# ===============================
 if __name__ == "__main__":
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print("XATOLIK:", e)
