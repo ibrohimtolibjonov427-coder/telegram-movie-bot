@@ -1,28 +1,34 @@
-# ===============================
-# TELEGRAM MOVIE BOT (AIROGRAM 3 VERSION)
-# ===============================
-
-# 📌 O'RNATISH:
-# pip install aiogram
-
+import asyncio
 import logging
 import sqlite3
-import asyncio
+import os
+
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.filters import Command
 
-# ===============================
-# ⚠️ O'ZGARTIRISH KERAK
-# ===============================
-API_TOKEN = "8631701404:AAEOTBfU9niY8x_G-iToyMPK6lJX5nb0tnE"
-ADMINS = [7454731921]  # O'z ID
-CHANNELS = ["@tolibjonovv_00"]  # faqat @username
+from aiohttp import web
 
 # ===============================
+# TOKEN (Renderdan olinadi)
+# ===============================
+API_TOKEN = os.getenv("BOT_TOKEN")
 
+if not API_TOKEN:
+    raise Exception("BOT_TOKEN topilmadi!")
+
+# ===============================
+# SOZLAMALAR
+# ===============================
+ADMINS = [7454731921]  # o'zingni ID
+CHANNELS = ["@tolibjonovv_00"]  # kanallar username
+
+# ===============================
+# BOT
+# ===============================
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
+
 logging.basicConfig(level=logging.INFO)
 
 # ===============================
@@ -55,12 +61,12 @@ async def check_sub(user_id):
 def sub_keyboard():
     kb = InlineKeyboardMarkup(inline_keyboard=[])
     for ch in CHANNELS:
-        kb.inline_keyboard.append([
-            InlineKeyboardButton(text=f"Obuna bo'lish {ch}", url=f"https://t.me/{ch[1:]}")
-        ])
-    kb.inline_keyboard.append([
-        InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_sub")
-    ])
+        kb.inline_keyboard.append(
+            [InlineKeyboardButton(text=f"Obuna bo'lish {ch}", url=f"https://t.me/{ch[1:]}")]
+        )
+    kb.inline_keyboard.append(
+        [InlineKeyboardButton(text="✅ Tekshirish", callback_data="check_sub")]
+    )
     return kb
 
 # ===============================
@@ -85,17 +91,7 @@ async def check_callback(callback: types.CallbackQuery):
         await callback.answer("❌ Obuna bo'lmagansiz", show_alert=True)
 
 # ===============================
-# ADMIN ADD
-# ===============================
-@dp.message(Command("add"))
-async def add_movie(message: types.Message):
-    if message.from_user.id not in ADMINS:
-        return
-
-    await message.answer("Videoni yuboring va captionga kod yozing")
-
-# ===============================
-# VIDEO SAVE
+# ADMIN VIDEO
 # ===============================
 @dp.message(F.video)
 async def save_movie(message: types.Message):
@@ -103,7 +99,7 @@ async def save_movie(message: types.Message):
         return
 
     if not message.caption:
-        await message.answer("❗ Kod yozing")
+        await message.answer("❗ Kod yozilmagan")
         return
 
     code = message.caption.strip()
@@ -115,7 +111,7 @@ async def save_movie(message: types.Message):
     await message.answer(f"✅ Saqlandi: {code}")
 
 # ===============================
-# SEND MOVIE
+# KINO CHIQARISH
 # ===============================
 @dp.message()
 async def send_movie(message: types.Message):
@@ -129,27 +125,34 @@ async def send_movie(message: types.Message):
     result = cursor.fetchone()
 
     if result:
-        await message.answer_video(result[0])
+        await bot.send_video(message.chat.id, result[0])
     else:
         await message.answer("❌ Topilmadi")
 
 # ===============================
-# STAT
+# FAKE SERVER (RENDER UCHUN)
 # ===============================
-@dp.message(Command("stat"))
-async def stat(message: types.Message):
-    if message.from_user.id not in ADMINS:
-        return
+PORT = int(os.environ.get("PORT", 10000))
 
-    cursor.execute("SELECT COUNT(*) FROM movies")
-    count = cursor.fetchone()[0]
+async def handle(request):
+    return web.Response(text="Bot ishlayapti")
 
-    await message.answer(f"🎬 Kinolar: {count}")
+async def start_web():
+    app = web.Application()
+    app.router.add_get("/", handle)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
 
 # ===============================
-# RUN
+# MAIN
 # ===============================
 async def main():
+    await start_web()
+    print("Bot ishga tushdi")
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
